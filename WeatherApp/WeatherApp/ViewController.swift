@@ -12,14 +12,16 @@ class ViewController: UIViewController {
     
     let key = "ae2660cbfb15ae919e944f013ed49449"
     let zipCode = "94108"
+    var weatherType:String?
 
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .purple
-        doTheJson()
+        fetchData()
+        
     }
 
-    func doTheJson() {
+    func fetchData() {
         // 1 - make a request with URLSession
         
         let url = URL(string: "http://api.openweathermap.org/data/2.5/weather?zip=\(zipCode),us&APPID=\(key)")!
@@ -37,15 +39,19 @@ class ViewController: UIViewController {
                 let weatherData = try JSONDecoder().decode(WeatherModel.self, from: data)
                 DispatchQueue.main.sync {
                     let currentWeather = weatherData.weather[0]?.description
-                    print("Works: \(currentWeather)")
+//                    print("Works: \(currentWeather)")
+                    self.weatherType = currentWeather
+                    if let weatherT = self.weatherType {
+                        print(weatherT)
+                    } else {
+                        print("something went wrong")
+                    }
+//                    print(self.weatherType)
                 }
             } catch let jsonError {
                 print("something went wrong while fetching json: \(jsonError.localizedDescription)")
             }
         }.resume()
-        
-        
     }
-
 }
 
