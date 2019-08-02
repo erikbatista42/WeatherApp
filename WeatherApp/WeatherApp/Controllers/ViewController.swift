@@ -8,17 +8,43 @@
 
 import UIKit
 
+
 class ViewController: UIViewController {
     
     let key = "ae2660cbfb15ae919e944f013ed49449"
     let zipCode = "94108"
-    var weatherType:String?
+    var weatherType: String?
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .purple
-        fetchData()
+        view.backgroundColor = .blue
+//        fetchData()
+        self.title = weatherType
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+         setupAlert()
         
+    }
+    
+    func setupAlert() {
+        //1. Create the alert controller.
+        let alert = UIAlertController(title: "Some Title", message: "Enter a text", preferredStyle: .alert)
+        
+        //2. Add the text field. You can configure it however you need.
+        alert.addTextField { (textField) in
+            textField.text = "Some default text"
+        }
+        
+        // 3. Grab the value from the text field, and print it when the user clicks OK.
+        alert.addAction(UIAlertAction(title: "OK", style: .default, handler: { [weak alert] (_) in
+            let textField = alert?.textFields![0] // Force unwrapping because we know it exists.
+            self.weatherType = textField!.text
+            print("Text field: \(self.weatherType ?? "nil")")
+        }))
+        
+        // 4. Present the alert.
+        self.present(alert, animated: true, completion: nil)
     }
 
     func fetchData() {
