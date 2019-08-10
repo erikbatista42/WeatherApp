@@ -30,18 +30,10 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
         view.backgroundColor = .blue
         setupTableView()
         self.navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addButtonDidClick))
-//        let weatherDataRealObjects = realm.objects(WeatherData.self)
-//        print("Realm WeatherData objects: \(weatherDataRealObjects)")
-        
-        
-        
-//        print("that", weatherDataRealObjects[0].cityName)
     }
     
     override func viewDidAppear(_ animated: Bool) {
         promptZipcode()
-//        self.title = cityName
-        
     }
     
     func promptZipcode() {
@@ -76,14 +68,13 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
             
         } else {
             print("Not first time launching")
+            let storedObjects = self.realm.objects(WeatherData.self)
+            let storedZipcode = storedObjects[0].zipcode
+            self.fetchData(textFieldInput: storedZipcode, firstLaunch: false)
         }
-//        self.fetchData()
     }
     
     func fetchData(textFieldInput: String, firstLaunch: Bool) {
-        // 1 - make a request with URLSession
-        // weatherDataRealObjects[0].zipcode
-//        let zipCode = self.zipCode
         let url = URL(string: "http://api.openweathermap.org/data/2.5/weather?zip=\(textFieldInput),us&APPID=\(key)")!
         _ = URLSession.shared.dataTask(with: url) { (data, response, error) in
             if let err = error {
@@ -113,9 +104,9 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
                             self.realm.add(self.weatherDataObject)
                             print("Stored weather object: ", storedObjects as Any)
                         }
+                        let storedWeatherData = storedObjects[0]
+                        self.cityName = storedWeatherData.cityName
                     }
-                    let storedWeatherData = storedObjects[0]
-                    self.cityName = "\(storedWeatherData.cityName) - \(storedWeatherData.weatherType)"
                     self.title = self.cityName
                 }
             } catch let jsonError {
@@ -141,8 +132,6 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
             self.userFeeling = textField!.text
             print("Text field: \(self.userFeeling ?? "nil")")
         }))
-        
-        // 4. Present the alert.
         self.present(alert, animated: true, completion: nil)
     }
     
