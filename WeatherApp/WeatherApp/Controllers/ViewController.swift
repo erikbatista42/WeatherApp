@@ -13,14 +13,16 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     
     let key = "ae2660cbfb15ae919e944f013ed49449"
     var zipCode: String?
-    var weatherType: String?
+    var currentWeatherType: String?
     var cityName: String?
     var userFeeling: String?
     let isFirstLaunch = UserDefaults.isFirstLaunch()
     let tableView = UITableView()
     let cellId = "cellId"
     let items = [Item]?.self
+    
     let weatherDataObject = WeatherData()
+    var storedWeatherDataObject: Results<WeatherData>?
     let realm = try! Realm()
     
     override func viewDidLoad() {
@@ -28,15 +30,104 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
         view.backgroundColor = .blue
         setupTableView()
         self.navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addButtonDidClick))
-        let weatherDataRealObjects = realm.objects(WeatherData.self)
-        print("Realm WeatherData objects: \(weatherDataRealObjects)")
-        self.title = weatherDataRealObjects[0].cityName
+//        let weatherDataRealObjects = realm.objects(WeatherData.self)
+//        print("Realm WeatherData objects: \(weatherDataRealObjects)")
+        
+        
+        
+//        print("that", weatherDataRealObjects[0].cityName)
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        promptZipcode()
+//        self.title = cityName
+        
+    }
+    
+    func promptZipcode() {
+        if isFirstLaunch {
+            let group = DispatchGroup()
+            let alert = UIAlertController(title: "Enter zip code", message: nil, preferredStyle: .alert)
+            
+            alert.addTextField { (textField) in
+                textField.placeholder = "94108"
+                textField.keyboardType = .numberPad
+            }
+            group.enter()
+            // 3. Grab the value from the text field, and print it when the user clicks OK.
+            alert.addAction(UIAlertAction(title: "OK", style: .default, handler: { [weak alert] (_) in
+                guard let textFieldText = alert?.textFields?[0].text else { return }
+                print("our text",textFieldText)
+                self.fetchData(textFieldInput: textFieldText, firstLaunch: true)
+//                if textFieldText == "" {
+//                    print("ERR: Text field empty!")
+//                } else {
+//                    DispatchQueue.main.async {
+//                        print("tf:",textFieldText)
+//                        self.zipCode = textFieldText
+//                        self.weatherDataObject.zipcode = textFieldText
+//                        group.leave()
+//                    }
+//                    self.fetchData()
+//                }
+            }))
+            
+            self.present(alert, animated: true, completion: nil)
+            
+        } else {
+            print("Not first time launching")
+        }
+//        self.fetchData()
+    }
+    
+    func fetchData(textFieldInput: String, firstLaunch: Bool) {
+        // 1 - make a request with URLSession
+        // weatherDataRealObjects[0].zipcode
+//        let zipCode = self.zipCode
+        let url = URL(string: "http://api.openweathermap.org/data/2.5/weather?zip=\(textFieldInput),us&APPID=\(key)")!
+        _ = URLSession.shared.dataTask(with: url) { (data, response, error) in
+            if let err = error {
+                print("omg something went wrong: \(err)")
+            }
+            guard let data = data else { return }
+            guard let response = response else { return }
+            let detailData = String(data: data, encoding: .utf8) as Any
+            print("Data: \(detailData)")
+            print("Response: \(response)")
+            do { // parse the response into json
+                let weatherData = try JSONDecoder().decode(WeatherModel.self, from: data)
+                DispatchQueue.main.sync {
+                    guard let currentWeather = weatherData.weather[0]?.description else { return }
+                    guard let city = weatherData.name else { return }
+                    print("Current Weather: \(currentWeather)")
+                    print("City: \(city)")
+                    self.cityName = city
+                    self.currentWeatherType = currentWeather
+                    self.weatherDataObject.zipcode = textFieldInput
+                    self.weatherDataObject.cityName = city
+                    self.weatherDataObject.weatherType = currentWeather
+                    let storedObjects = self.realm.objects(WeatherData.self)
+                    
+                    if firstLaunch == true {
+                        try! self.realm.write {
+                            self.realm.add(self.weatherDataObject)
+                            print("Stored weather object: ", storedObjects as Any)
+                        }
+                    }
+                    let storedWeatherData = storedObjects[0]
+                    self.cityName = "\(storedWeatherData.cityName) - \(storedWeatherData.weatherType)"
+                    self.title = self.cityName
+                }
+            } catch let jsonError {
+                print("Something went wrong while fetching json: \(jsonError.localizedDescription)")
+            }
+        }.resume()
     }
     
     @objc func addButtonDidClick() {
-        print(123)
+        let weatherDataRealObjects = self.realm.objects(WeatherData.self)
         //1. Create the alert controller.
-        let alert = UIAlertController(title: "The weather today is \(weatherType!)!", message: "How are you feeling today?", preferredStyle: .alert)
+        let alert = UIAlertController(title: "The weather today is \(weatherDataRealObjects[0].weatherType)!", message: "How are you feeling today?", preferredStyle: .alert)
         
         //2. Add the text field. You can configure it however you need.
         alert.addTextField { (textField) in
@@ -55,9 +146,7 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
         self.present(alert, animated: true, completion: nil)
     }
     
-    override func viewDidAppear(_ animated: Bool) {
-        promptZipcode()
-    }
+    
     
     func setupTableView() {
         tableView.dataSource = self
@@ -79,71 +168,8 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
         return cell
     }
     
-    func promptZipcode() {
-        if isFirstLaunch {
-            print("This is the first launch")
-            //1. Create the alert controller.
-            let alert = UIAlertController(title: "Enter zip code", message: nil, preferredStyle: .alert)
-            
-            //2. Add the text field. You can configure it however you need.
-            alert.addTextField { (textField) in
-                textField.placeholder = "94108"
-                textField.keyboardType = .numberPad
-            }
-            
-            // 3. Grab the value from the text field, and print it when the user clicks OK.
-            alert.addAction(UIAlertAction(title: "OK", style: .default, handler: { [weak alert] (_) in
-                let textField = alert?.textFields![0] // Force unwrapping because we know it exists.
-                self.zipCode = textField!.text
-                self.weatherDataObject.zipcode = textField!.text!
-                self.fetchData()
-            }))
-            
-            // 4. Present the alert.
-            self.present(alert, animated: true, completion: nil)
-            
-        } else {
-            print("Not first time launching")
-        }
-    }
+    
 
-    func fetchData() {
-        // 1 - make a request with URLSession
-        
-        let url = URL(string: "http://api.openweathermap.org/data/2.5/weather?zip=\(self.zipCode!),us&APPID=\(key)")!
-        _ = URLSession.shared.dataTask(with: url) { (data, response, error) in
-            if let err = error {
-                print("omg something went wrong: \(err)")
-            }
-            guard let data = data else { return }
-//            print(String(data: data, encoding: .utf8))
-//            print("That data: \(data)")
-            print("Response: \(response!)")
-            
-            // 2 - parse the response (json)
-            do {
-                let weatherData = try JSONDecoder().decode(WeatherModel.self, from: data)
-                DispatchQueue.main.sync {
-                    let currentWeather = weatherData.weather[0]?.description
-                    let city = weatherData.name
-                    self.cityName = city
-                    self.weatherType = currentWeather
-                    
-                    self.weatherDataObject.cityName = city!
-                    // store the zipcode
-                    try! self.realm.write {
-                        self.realm.add(self.weatherDataObject)
-                    }
-                    if let weatherType = self.weatherType {
-                        print("Weather Type: \(weatherType)")
-                    } else {
-                        print("something went wrong")
-                    }
-                }
-            } catch let jsonError {
-                print("something went wrong while fetching json: \(jsonError.localizedDescription)")
-            }
-        }.resume()
-    }
+    
 }
 

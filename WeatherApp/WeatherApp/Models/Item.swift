@@ -24,4 +24,5 @@ class Item: Object {
 class WeatherData: Object {
     @objc dynamic var zipcode: String = ""
     @objc dynamic var cityName: String = ""
+    @objc dynamic var weatherType: String = ""
 }
