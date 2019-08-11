@@ -15,14 +15,10 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     var zipCode: String?
     var currentWeatherType: String?
     var cityName: String?
-    var userFeeling: String?
     
     let isFirstLaunch = UserDefaults.isFirstLaunch()
     let tableView = UITableView()
     let cellId = "cellId"
-//    let userLogs = [WeatherItem]?.self
-//    var items = LogsInventory()
-//    var userLogs = List<WeatherLog>()
     var logList = List<WeatherLogItem>()
     var logsInventory = LogsInventory()
     
@@ -32,9 +28,6 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     
     override func viewDidLoad() {
         super.viewDidLoad()
-//        self.logList = self.logList.realm.
-        let storedLogObjects = self.realm.objects(WeatherLogItem.self)
-        print("intersting", storedLogObjects)
         view.backgroundColor = .blue
         setupTableView()
         self.navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addButtonDidClick))
@@ -63,7 +56,6 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
             self.present(alert, animated: true, completion: nil)
             
         } else {
-            print("Not first time launching")
             let storedObjects = self.realm.objects(WeatherItemData.self)
             let storedZipcode = storedObjects[0].zipcode
             self.fetchData(textFieldInput: storedZipcode, firstLaunch: false)
@@ -74,7 +66,7 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
         let url = URL(string: "http://api.openweathermap.org/data/2.5/weather?zip=\(textFieldInput),us&APPID=\(key)")!
         _ = URLSession.shared.dataTask(with: url) { (data, response, error) in
             if let err = error {
-                print("omg something went wrong: \(err)")
+                print("Something went wrong while making the request: \(err)")
             }
             guard let data = data else { return }
             guard let response = response else { return }
@@ -95,11 +87,9 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
                     self.weatherDataObject.weatherType = currentWeather
                     let storedObjects = self.realm.objects(WeatherItemData.self)
                     
-                    
                     if firstLaunch == true {
                         try! self.realm.write {
                             self.realm.add(self.weatherDataObject)
-                            print("Stored weather object: ", storedObjects as Any)
                         }
                         let storedWeatherData = storedObjects[0]
                         self.cityName = storedWeatherData.cityName
@@ -114,14 +104,10 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     
     @objc func addButtonDidClick() {
         let storedWeatherObject = self.realm.objects(WeatherItemData.self)
-        //1. Create the alert controller.
         let alert = UIAlertController(title: "The weather today is \(storedWeatherObject[0].weatherType)!", message: "How are you feeling today?", preferredStyle: .alert)
-        
-        //2. Add the text field. You can configure it however you need.
         alert.addTextField { (textField) in
             textField.placeholder = "Example: Relaxed"
         }
-        // 3. Grab the value from the text field, and print it when the user clicks OK.
         alert.addAction(UIAlertAction(title: "OK", style: .default, handler: { [weak alert] (_) in
             let textFieldText = alert?.textFields![0].text // Force unwrapping because we know it exists.
 
@@ -139,7 +125,6 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
                 self.realm.add(self.logList, update: true)
             }
             self.tableView.reloadData()
-            print("list: \(self.logList.isEmpty)")
         }))
         self.present(alert, animated: true, completion: nil)
     }
