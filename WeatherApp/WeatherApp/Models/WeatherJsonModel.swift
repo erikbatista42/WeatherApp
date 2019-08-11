@@ -8,7 +8,7 @@
 
 import Foundation
 
-struct WeatherModel: Decodable {
+struct WeatherJsonModel: Decodable {
     let coord: Coord?
     
     let weather: [Weather?]

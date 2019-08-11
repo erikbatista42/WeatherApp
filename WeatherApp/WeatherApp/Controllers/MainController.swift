@@ -9,7 +9,7 @@
 import UIKit
 import RealmSwift
 
-class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
+class MainController: UIViewController, UITableViewDelegate, UITableViewDataSource {
     
     let key = "ae2660cbfb15ae919e944f013ed49449"
     var zipCode: String?
@@ -74,7 +74,7 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
             print("Data: \(detailData)")
             print("Response: \(response)")
             do { // parse the response into json
-                let weatherData = try JSONDecoder().decode(WeatherModel.self, from: data)
+                let weatherData = try JSONDecoder().decode(WeatherJsonModel.self, from: data)
                 DispatchQueue.main.sync {
                     guard let currentWeather = weatherData.weather[0]?.description else { return }
                     guard let city = weatherData.name else { return }
@@ -148,9 +148,5 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
         cell.textLabel?.text = storedLogObjects.userLog
         return cell
     }
-    
-    
-
-    
 }
 
