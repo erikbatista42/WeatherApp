@@ -16,17 +16,25 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     var currentWeatherType: String?
     var cityName: String?
     var userFeeling: String?
+    
     let isFirstLaunch = UserDefaults.isFirstLaunch()
     let tableView = UITableView()
     let cellId = "cellId"
-    let items = [Item]?.self
+//    let userLogs = [WeatherItem]?.self
+//    var items = LogsInventory()
+//    var userLogs = List<WeatherLog>()
+    var logList = List<WeatherLogItem>()
+    var logsInventory = LogsInventory()
     
-    let weatherDataObject = WeatherData()
-    var storedWeatherDataObject: Results<WeatherData>?
+    let weatherDataObject = WeatherItemData()
+    var storedWeatherDataObject: Results<WeatherItemData>?
     let realm = try! Realm()
     
     override func viewDidLoad() {
         super.viewDidLoad()
+//        self.logList = self.logList.realm.
+        let storedLogObjects = self.realm.objects(WeatherLogItem.self)
+        print("intersting", storedLogObjects)
         view.backgroundColor = .blue
         setupTableView()
         self.navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addButtonDidClick))
@@ -46,29 +54,17 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
                 textField.keyboardType = .numberPad
             }
             group.enter()
-            // 3. Grab the value from the text field, and print it when the user clicks OK.
             alert.addAction(UIAlertAction(title: "OK", style: .default, handler: { [weak alert] (_) in
                 guard let textFieldText = alert?.textFields?[0].text else { return }
-                print("our text",textFieldText)
                 self.fetchData(textFieldInput: textFieldText, firstLaunch: true)
-//                if textFieldText == "" {
-//                    print("ERR: Text field empty!")
-//                } else {
-//                    DispatchQueue.main.async {
-//                        print("tf:",textFieldText)
-//                        self.zipCode = textFieldText
-//                        self.weatherDataObject.zipcode = textFieldText
-//                        group.leave()
-//                    }
-//                    self.fetchData()
-//                }
+                //TODO: error handling when user inputs non existing zipcode/ empty textfield
             }))
             
             self.present(alert, animated: true, completion: nil)
             
         } else {
             print("Not first time launching")
-            let storedObjects = self.realm.objects(WeatherData.self)
+            let storedObjects = self.realm.objects(WeatherItemData.self)
             let storedZipcode = storedObjects[0].zipcode
             self.fetchData(textFieldInput: storedZipcode, firstLaunch: false)
         }
@@ -97,7 +93,8 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
                     self.weatherDataObject.zipcode = textFieldInput
                     self.weatherDataObject.cityName = city
                     self.weatherDataObject.weatherType = currentWeather
-                    let storedObjects = self.realm.objects(WeatherData.self)
+                    let storedObjects = self.realm.objects(WeatherItemData.self)
+                    
                     
                     if firstLaunch == true {
                         try! self.realm.write {
@@ -116,26 +113,36 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     }
     
     @objc func addButtonDidClick() {
-        let weatherDataRealObjects = self.realm.objects(WeatherData.self)
+        let storedWeatherObject = self.realm.objects(WeatherItemData.self)
         //1. Create the alert controller.
-        let alert = UIAlertController(title: "The weather today is \(weatherDataRealObjects[0].weatherType)!", message: "How are you feeling today?", preferredStyle: .alert)
+        let alert = UIAlertController(title: "The weather today is \(storedWeatherObject[0].weatherType)!", message: "How are you feeling today?", preferredStyle: .alert)
         
         //2. Add the text field. You can configure it however you need.
         alert.addTextField { (textField) in
-            textField.placeholder = "Example: Really Happy"
-            textField.keyboardType = .numberPad
+            textField.placeholder = "Example: Relaxed"
         }
-        
         // 3. Grab the value from the text field, and print it when the user clicks OK.
         alert.addAction(UIAlertAction(title: "OK", style: .default, handler: { [weak alert] (_) in
-            let textField = alert?.textFields![0] // Force unwrapping because we know it exists.
-            self.userFeeling = textField!.text
-            print("Text field: \(self.userFeeling ?? "nil")")
+            let textFieldText = alert?.textFields![0].text // Force unwrapping because we know it exists.
+
+            let date = Date()
+            let formatter = DateFormatter()
+            formatter.dateFormat = "dd.MM.yyyy"
+            let result = formatter.string(from: date)
+            
+            let item = WeatherLogItem()
+            let logText = "\(result) - Feeling \(textFieldText ?? "") | \(storedWeatherObject[0].weatherType)."
+            item.userLog = logText
+            
+            try! self.realm.write {
+                self.logList.append(item)
+                self.realm.add(self.logList, update: true)
+            }
+            self.tableView.reloadData()
+            print("list: \(self.logList.isEmpty)")
         }))
         self.present(alert, animated: true, completion: nil)
     }
-    
-    
     
     func setupTableView() {
         tableView.dataSource = self
@@ -146,14 +153,14 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-//        return items.count
-        return 2
+        let storedLogObjects = self.realm.objects(WeatherLogItem.self)
+        return storedLogObjects.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: cellId, for: indexPath)
-//        let item = items[indexPath.row]
-        cell.textLabel?.text = "ok"
+        let storedLogObjects = self.realm.objects(WeatherLogItem.self)[indexPath.row]
+        cell.textLabel?.text = storedLogObjects.userLog
         return cell
     }
     

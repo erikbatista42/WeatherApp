@@ -1,28 +1,26 @@
 //
-//  Item.swift
+//  ItemLog.swift
 //  WeatherApp
 //
-//  Created by luxury on 8/2/19.
+//  Created by luxury on 8/10/19.
 //  Copyright © 2019 luxury. All rights reserved.
 //
 
 import Foundation
 import RealmSwift
+import Realm
 
-class Item: Object {
-    
+class LogsInventory: Object {
+    @objc dynamic var name: String = "logBook"
+    let logList = List<WeatherLogItem>()
+}
+
+class WeatherLogItem: Object {
     @objc dynamic var itemId: String = UUID().uuidString
+    @objc dynamic var userLog: String = ""
     @objc dynamic var timestamp: Date = Date()
-    @objc dynamic var body: String = ""
     
     override static func primaryKey() -> String? {
         return "itemId"
     }
-    
-}
-
-class WeatherData: Object {
-    @objc dynamic var zipcode: String = ""
-    @objc dynamic var cityName: String = ""
-    @objc dynamic var weatherType: String = ""
 }
